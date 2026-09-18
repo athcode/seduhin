@@ -11,3 +11,5 @@ venv/
 *.log
 .vercel/
 .impeccable/
+
+.vercel
