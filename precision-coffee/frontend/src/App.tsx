@@ -22,6 +22,14 @@ export function App() {
   const isBrewPhase = BREW_PHASES.some((p) => p.key === phase);
   const phaseIdx = BREW_PHASES.findIndex((p) => p.key === phase);
 
+  const canGoTo = (target: AppPhase): boolean =>
+    target === "input" ? true : !!state.recipe;
+
+  const goToPhase = (target: AppPhase) => {
+    if (target === phase || !canGoTo(target)) return;
+    dispatch({ type: "SET_PHASE", phase: target });
+  };
+
   return (
     <div className="flex flex-col flex-1">
       {isBrewPhase && (
@@ -45,16 +53,23 @@ export function App() {
               {BREW_PHASES.map((p, i) => {
                 const isActive = i === phaseIdx;
                 const isDone = i < phaseIdx;
+                const reachable = canGoTo(p.key);
                 return (
-                  <div key={p.key} className="phase-step flex-1 min-w-0">
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => goToPhase(p.key)}
+                    disabled={!reachable}
+                    aria-current={isActive ? "step" : undefined}
+                    className="phase-step flex-1 min-w-0 cursor-pointer disabled:cursor-default disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-soft-yellow rounded-lg"
+                  >
                     <div
                       className={`phase-dot ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
-                      aria-current={isActive ? "step" : undefined}
                     >
                       {isDone ? "✓" : p.n}
                     </div>
                     <span className="hidden sm:inline truncate">{p.label}</span>
-                  </div>
+                  </button>
                 );
               })}
             </div>

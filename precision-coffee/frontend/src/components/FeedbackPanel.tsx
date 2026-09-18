@@ -55,6 +55,12 @@ export function FeedbackPanel() {
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
+          onClick={() => dispatch({ type: "SET_PHASE", phase: "brewing" })}
+          className="btn-ghost"
+        >
+          ← Seduh Lagi
+        </button>
+        <button
           onClick={() => dispatch({ type: "SET_PHASE", phase: "recipe" })}
           className="btn-secondary"
         >

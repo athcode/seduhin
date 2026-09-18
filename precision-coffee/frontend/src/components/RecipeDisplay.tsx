@@ -121,6 +121,12 @@ export function RecipeDisplay() {
 
       <div className="flex flex-col sm:flex-row gap-3">
         <button
+          onClick={() => dispatch({ type: "SET_PHASE", phase: "input" })}
+          className="btn-ghost self-start"
+        >
+          ← Ubah Kopi
+        </button>
+        <button
           onClick={() => dispatch({ type: "SET_PHASE", phase: "brewing" })}
           className="btn-primary flex-1 text-lg"
         >
