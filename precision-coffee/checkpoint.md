@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
 **Date:** 2026-09-19
-**Status:** v2.8 — repo GitHub + deploy Vercel production **selesai** (lihat "v2.8 Changelog"). Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
+**Status:** v2.9 — navigasi back/next antar phase **selesai + diverifikasi live** (lihat "v2.9 Changelog"). Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -15,7 +15,7 @@ precision-coffee/
 │   ├── coffee_engine.py     # 12 methods, 17 grinders, 18 presets, taste matching, feedback
 │   ├── requirements.txt     # fastapi, uvicorn, pydantic (dipakai Vercel service "api")
 │   ├── test_engine.py       # 190+ assertion (deterministic engine)
-│   └── test_api.py          # TestClient 5 endpoint
+│   ├── test_api.py          # TestClient 5 endpoint
 ├── frontend/
 │   ├── index.html
 │   ├── package.json         # React 18 + Vite 5 + Tailwind 3 + @fontsource-variable (fraunces, dm-sans)
@@ -49,7 +49,8 @@ precision-coffee/
 │   ├── validate_icons.mjs       # cek 12 icon ter-render
 │   ├── check_icon_render.mjs    # Edge headless --dump-dom (JALANKAN VIA NODE, bukan PowerShell)
 │   ├── copy_check.mjs           # DOM check anti-slop (saat ini FAIL: em-dash backend)
-│   └── find_emdash.mjs          # scan fs, skip node_modules
+│   ├── find_emdash.mjs          # scan fs, skip node_modules
+│   └── nav_check.mjs            # live interaction test via Edge CDP (20 assertion navigasi phase)
 ├── COFFEE_KNOWLEDGE.md      # 11-bab panduan kopi bahasa Indonesia
 ├── AGENTS.md                # Ponytail + Coffee domain knowledge
 ├── stop-slop.md             # Style guide copy anti generative-AI (10 tanda slop)
@@ -223,6 +224,37 @@ ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-w
 
 ---
 
+## v2.9 Changelog (2026-09-19)
+
+### Masalah
+User susitl back/next antar phase: `RecipeDisplay` **tidak ada tombol back** (cuma Mulai Timer + Reset — Reset hapus semua, terlalu mahal cuma untuk ganti dose), `FeedbackPanel` juga tidak ada back ke timer. Header phase rail (Kopi/Resep/Seduh/Rasa) cuma tampilan, tidak bisa diklik.
+
+### Fix
+| File | Perubahan |
+|---|---|
+| `App.tsx` | Phase rail jadi `<button>`: `goToPhase()` + guard `canGoTo` (input selalu; recipe/brewing/feedback butuh `state.recipe`). Step depan yang belum reachable di-render disabled (opacity-40). |
+| `RecipeDisplay.tsx` | Tambah `← Ubah Kopi` (btn-ghost → phase input). State form input terjaga saat balik (verified: origin masih terisi). |
+| `FeedbackPanel.tsx` | Tambah `← Seduh Lagi` (btn-ghost → phase brewing). |
+
+### Debug Live (bukan terminal)
+Karena harus verify interaksi sungguhan (klik, transisi phase), test terminal tidak cukup. Dibuat `scripts/nav_check.mjs`:
+- Drive **Edge headless via CDP** (WebSocket built-in Node 24, port 9223) — `Runtime.evaluate` klik DOM beneran, bukan mock.
+- 20 assertion: home → method → presets → input (isi origin) → recipe → brewing → feedback, lalu **back** lagi ke recipe → input, cek state terjaga, lalu skip forward ke feedback dari input.
+- Ekskulisan test ketemu bug **di test itself** (bukan app): filter `[...querySelectorAll("button")].includes("Seduh")` kepencet tombol **brand "Seduhin"** karena substring cocok → klik brand → balik home → cascade 9 failure. Debug terpisah (`nav_debug.mjs`, lalu dihapus) buktiin app sebenarnya jalan. Fix: scope selector ke `.phase-rail button`.
+- Hasil akhir: **0 failure**. Server dev dijalankan saat debug (backend :8000 + frontend :5173).
+
+### Verifikasi
+- `tsc -b`: 0 error.
+- `node scripts/nav_check.mjs`: 20/20 PASS (klik sungguhan di browser headless).
+- Commit `1ba5a6d` → push → auto-deploy Vercel (GitHub integration aktif).
+
+### Catatan debugging besok
+- Jangan scan "button" global buat nyari tombol phase: brand "Seduhin" match "Seduh", "Seduh Lagi" match "Seduh". Scope ke container (`.phase-rail`, atau parent card).
+- CDP port 9223 dipakai nav_check; 9224 pernah dipakai debug sekian pakai. Kalau port bentrok, ganti angka.
+- Server dev masih bisa jalan di background (PID disimpan via Start-Process); kalau mati, `.\start.ps1` atau 2 terminal manual.
+
+---
+
 ## v2.8 Changelog (2026-09-19)
 
 ### Git Repo + Deploy Vercel Production
@@ -341,7 +373,8 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 ### 1. Tugas segera (opsional, besok)
 - [ ] Custom domain `seduhin.app` (atau varian) di Vercel → `vercel domains add seduhin.app`, lalu set DNS. Domain ini yang dipakai untuk share.
 - [ ] README: tambah section "Deploy" (link repo + URL production + cara `vercel deploy --prod`).
-- [ ] Sertakan README/CHECKPOINT: catatan arsitektur Services biar gampang di-debug kalau deploy rusak lagi.
+- [ ] Label "← Alat lain" di `BeanInput` sebenarnya balik ke `presets` (skip method). Pertimbangkan ganti ke `← Balik` generik atau ke phase method, biar konsisten dengan rail.
+- [ ] Home/method/presets belum ada header global (back button per-komponen saja). Kalau dirasa perlu, tambah header sticky di phase non-brew juga.
 
 ### 2. Lanjut fitur
 - [ ] Filter presets by equipment on taste-match endpoint
