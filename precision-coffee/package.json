@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@auron-labs/opencode-impeccable": "^0.5.0",
+    "@dietrichgebert/ponytail": "^4.9.0"
+  }
+}

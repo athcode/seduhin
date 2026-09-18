@@ -1,0 +1,13 @@
+node_modules/
+__pycache__/
+*.pyc
+dist/
+.tsbuildinfo
+.venv/
+venv/
+.env
+.env.*
+.DS_Store
+*.log
+.vercel/
+.impeccable/

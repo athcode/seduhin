@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: #F9F6F0;
+    background-image: radial-gradient(
+      circle at 50% -10%,
+      rgba(244, 197, 66, 0.14),
+      transparent 55%
+    );
+    background-attachment: fixed;
+    color: #3C2A21;
+    /* sticky footer: biarkan kontainer utama tumbuh */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* heading pakai Fraunces (serif variabel, karakter artisan) */
+  h1, h2, h3 {
+    @apply font-display;
+  }
+
+  #root {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* teks muted harus kontras >= 4.5:1 di atas cream */
+  .text-muted {
+    color: #7C5C4A;
+  }
+
+  /* target tap layak untuk mobile (WCAG 2.5.5) */
+  button,
+  [role="button"] {
+    min-height: 2.75rem;
+  }
+
+  ::selection {
+    background-color: rgba(244, 197, 66, 0.35);
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-light-brown/40 shadow-soft;
+  }
+
+  .card-hover {
+    @apply transition-all duration-150 ease-brew hover:shadow-lift hover:border-soft-yellow/60 active:scale-[0.99];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-deep-brown text-cream font-semibold
+           py-3 px-6 rounded-xl min-h-[2.75rem]
+           hover:bg-deep-brown/90 active:scale-[0.98] transition-all duration-150 ease-brew
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+           focus-visible:ring-2 focus-visible:ring-soft-yellow focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-deep-brown text-deep-brown font-semibold
+           py-3 px-6 rounded-xl min-h-[2.75rem]
+           hover:bg-deep-brown hover:text-cream active:scale-[0.98] transition-all duration-150 ease-brew
+           focus-visible:ring-2 focus-visible:ring-soft-yellow focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-mocha font-medium
+           py-2 px-3 rounded-lg min-h-[2.5rem]
+           hover:text-deep-brown hover:bg-deep-brown/5 transition-colors duration-150;
+  }
+
+  .input-field {
+    @apply w-full bg-cream border border-light-brown rounded-xl px-4 py-3 min-h-[2.75rem]
+           text-deep-brown placeholder:text-mocha/60 font-medium
+           focus:outline-none focus:ring-2 focus:ring-soft-yellow focus:border-soft-yellow
+           transition-all duration-150;
+  }
+
+  .select-field {
+    @apply input-field appearance-none cursor-pointer bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%237C5C4A%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')]
+           bg-[length:1.25rem_1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10;
+  }
+
+  /* chip kecil untuk label/stat */
+  .chip {
+    @apply inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full;
+  }
+
+  .alert {
+    @apply rounded-xl px-4 py-3 text-sm font-medium;
+  }
+
+  .alert-error {
+    @apply alert bg-red-50 border border-red-200 text-red-700;
+  }
+
+  .alert-info {
+    @apply alert bg-soft-yellow/15 border border-soft-yellow/50 text-deep-brown;
+  }
+
+  /* progress bar: transisi CSS agar mulus di low-end (rAF hanya update @30fps) */
+  .bar-track {
+    @apply w-full bg-cream-2 rounded-full overflow-hidden border border-light-brown/30;
+  }
+
+  .bar-fill {
+    @apply h-full rounded-full will-change-[width];
+    transition: width 0.12s linear;
+  }
+
+  .phase-step {
+    @apply flex items-center gap-2 text-sm font-medium text-mocha transition-colors duration-200;
+  }
+  .phase-step.active {
+    @apply text-deep-brown;
+  }
+  .phase-step.done {
+    @apply text-mocha/70;
+  }
+  .phase-dot {
+    @apply flex items-center justify-center w-7 h-7 rounded-full border-2 border-light-brown
+           bg-transparent text-xs font-bold transition-all duration-200 shrink-0;
+  }
+  .phase-dot.active {
+    @apply border-deep-brown bg-deep-brown text-cream;
+  }
+  .phase-dot.done {
+    @apply border-soft-yellow bg-soft-yellow text-deep-brown;
+  }
+
+  /* dock fase untuk layar sempit */
+  .phase-rail {
+    @apply flex items-center justify-between gap-1 w-full;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.28s ease-brew forwards;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.96); opacity: 0.6; }
+  60% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop {
+  animation: pop 0.3s ease-brew forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
