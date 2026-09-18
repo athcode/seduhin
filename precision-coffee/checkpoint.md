@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
-**Date:** 2026-09-18
-**Status:** v2.7 — copy de-slop frontend + audit em-dash backend **selesai** (lihat "v2.7 Changelog"). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi.
+**Date:** 2026-09-19
+**Status:** v2.8 — repo GitHub + deploy Vercel production **selesai** (lihat "v2.8 Changelog"). Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -11,14 +11,15 @@
 precision-coffee/
 ├── backend/
 │   ├── main.py              # FastAPI — 5 endpoints (health, presets, taste-match, recipe, feedback)
+│   ├── models.py            # Pydantic models + converters (dipakai main.py; sebelum refactor ada di main.py)
 │   ├── coffee_engine.py     # 12 methods, 17 grinders, 18 presets, taste matching, feedback
-│   ├── requirements.txt     # fastapi, uvicorn, pydantic
+│   ├── requirements.txt     # fastapi, uvicorn, pydantic (dipakai Vercel service "api")
 │   ├── test_engine.py       # 190+ assertion (deterministic engine)
 │   └── test_api.py          # TestClient 5 endpoint
 ├── frontend/
 │   ├── index.html
 │   ├── package.json         # React 18 + Vite 5 + Tailwind 3 + @fontsource-variable (fraunces, dm-sans)
-│   ├── vite.config.ts       # host: true, proxy /api → 127.0.0.1:8000
+│   ├── vite.config.ts       # host: true, proxy /api → 127.0.0.1:8000 (dev aja, prod pakai Vercel rewrite)
 │   ├── tailwind.config.js   # design tokens: mocha, shadow-soft/lift, ease-brew, text-timer
 │   ├── postcss.config.js
 │   └── src/
@@ -42,6 +43,8 @@ precision-coffee/
 │       │   └── ErrorBoundary.tsx     # Crash handler
 │       └── styles/
 │           └── globals.css          # 44px tap target, reduced-motion, safe-area
+├── .gitignore               # node_modules, __pycache__, dist, .venv, .vercel, .impeccable
+├── vercel.json              # Services: web (frontend/) + api (backend/) + routing rules
 ├── scripts/
 │   ├── validate_icons.mjs       # cek 12 icon ter-render
 │   ├── check_icon_render.mjs    # Edge headless --dump-dom (JALANKAN VIA NODE, bukan PowerShell)
@@ -55,6 +58,8 @@ precision-coffee/
 ├── opencode.json            # ponytail + impeccable plugins
 └── checkpoint.md            # This file
 ```
+
+**Repo git:** https://github.com/athcode/seduhin (publik, branch `main`). Git init + 4 commit dilakukan 2026-09-19. Remote GitHub auto-deploy ke Vercel (integration ter-connect; `git push` memicu build baru).
 
 ---
 
@@ -210,6 +215,73 @@ cd frontend && npm run dev        # → http://localhost:5173
 ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-warning:true"
 ```
 
+### Production (Vercel):
+- Live: **https://seduhin-app.vercel.app** (deploy manual: `vercel deploy --prod` di folder ini)
+- Perubahan di `main` GitHub → auto-deploy (integration aktif)
+- Lihat build log: `vercel inspect <url> --logs`
+- Catatan: `seduhin.vercel.app` **sudah dipakai** project pihak ketiga ("Seduhin - Recipe book"), jadi pakai `seduhin-app`. Domain lain yang dites bebas: seduhin-kopi, seduhin-coffee, seduhin-id, seduhin-aja.
+
+---
+
+## v2.8 Changelog (2026-09-19)
+
+### Git Repo + Deploy Vercel Production
+Dari sebelumnya belum ada repo git sama sekali → repo publik + live di Vercel.
+
+**Git:**
+- `git init` di `I:\AI Research\Website Kopi` (root kerja, include AGENTS.md + SKILL.md).
+- `.gitignore` baru: node_modules, __pycache__, dist, .venv, .vercel, .impeccable, tsbuildinfo. 49 file di-commit, node_modules aman ter-exclude.
+- Commit author: `athcode <athcode@users.noreply.github.com>` (token gh tak punya scope `user`, pakai noreply).
+- 4 commit: initial → file-based api attempt → services → SPA fix.
+
+**Deploy:** https://github.com/athcode/seduhin → Vercel project `seduhin-app` (scope `athcode-3121`).
+
+### Arsitektur Deploy: Vercel Services (1 project, 1 domain)
+Framework preset FastAPI (entrypoint `backend.main:app`) **gagal**: Vercel anggap seluruh project = Python app, static frontend diabaikan, `/` 404. File-based `/api` functions juga **gagal**: Vercel versi baru mewajibkan entrypoint FastAPI begitu lihat dependency fastapi, jadi `/api/*.py` gak jadi function.
+
+Solusi: **Vercel Services** (beta, ada di akun ini):
+```json
+{
+  "services": {
+    "web": { "root": "frontend/", "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }] },
+    "api": { "root": "backend/", "entrypoint": "main:app" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ]
+}
+```
+- `/api/*` → FastAPI service (path asli diteruskan, route `/api/recipe` match). Sisanya → web service + SPA fallback ke `/index.html` (deep-link `/method` dll. sebelumnya 404).
+- Frontend: Vite build → static; Backend: Python 3.12 serverless, deps dari `backend/requirements.txt` (uv).
+- Cold start per function; engine ringan (kalkulator), bukan LLM.
+
+### Refactor: backend/models.py
+Pydantic models + converters dipindah dari `main.py` ke `models.py` supaya bisa dipakai bersama (localhost + api functions di percobaan sebelumnya):
+- `main.py` sekarang thin wrapper: import models, tetap expose `app` + 5 route + `__main__` uvicorn. `start.ps1` dan `test_api.py` tidak ter-efek.
+- `main.py` tambah `sys.path.insert(0, dirname(abspath(__file__)))` di atas import bare (`from coffee_engine import ...`) supaya bisa di-import sebagai module dari parent folder.
+
+### Uji Coba
+- `python test_engine.py` + `python test_api.py`: **0 failure**.
+- 5 endpoint live dites di `seduhin-app.vercel.app`: health 200, presets 200 (18), taste-match 200, recipe POST 200 (V60/Light/Washed/Comandante C40 → dose 18g, 95°C, grind 30, C40 setting 25, 3 stages), feedback POST 200 (SOUR → grind 30→25, temp 95→97, grinder tetap C40).
+- Deep-link 7 route: semua 200 + `#root` ada. Asset: JS 186KB + CSS 27KB ter-serve benar (content-type cek).
+- Runtime dev lokal: `vite.config.ts` proxy `/api` → 127.0.0.1:8000 tetap (dev aja; prod pakai Vercel rewrite).
+
+### File Baru / Berubah
+| File | Perubahan |
+|---|---|
+| `.gitignore` | Baru |
+| `vercel.json` | Baru (services + routing) |
+| `backend/models.py` | Baru (models + converters) |
+| `backend/main.py` | Refactor import models + sys.path fix |
+| `pyproject.toml` | Dihapus (bikin preset FastAPI konflik static) |
+| `api/*.py` | Pernah dibuat (5 file-based functions), dihapus setelah pivot ke Services |
+
+### Pelajaran (jangan diulang besok)
+- Vercel + dependency fastapi di root project = framework preset wajib entrypoint; tidak bisa main buka file-based `/api` functions. Kalau butuh frontend static + Python di project yg sama → **Services**, bukan preset.
+- Rewrite di service web butuh exclude `assets/`, kalau tidak asset JS/CSS ikut ke-rewrite ke index.html.
+- Token gh scope `repo` saja (tanpa `user`) → ambil email lewat `gh api user/emails` gagal; pakai `<user>@users.noreply.github.com`.
+
 ---
 
 ## v2.7 Changelog (2026-09-18)
@@ -266,20 +338,26 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 
 ## Next Work (urutan prioritas)
 
-### 1. Lanjut fitur
+### 1. Tugas segera (opsional, besok)
+- [ ] Custom domain `seduhin.app` (atau varian) di Vercel → `vercel domains add seduhin.app`, lalu set DNS. Domain ini yang dipakai untuk share.
+- [ ] README: tambah section "Deploy" (link repo + URL production + cara `vercel deploy --prod`).
+- [ ] Sertakan README/CHECKPOINT: catatan arsitektur Services biar gampang di-debug kalau deploy rusak lagi.
+
+### 2. Lanjut fitur
 - [ ] Filter presets by equipment on taste-match endpoint
 - [ ] Dark mode UI
-- [ ] PWA / offline support
+- [ ] PWA / offline support (frontend service Vercel bagus untuk ini; tinggal tambah manifest + service worker)
 - [ ] Export resep ke PDF
 - [ ] Multi-language (EN/ID)
 - [ ] Water recipe calculator (mineral composition)
 
-### 2. Selesai (jangan kerjain lagi)
+### 3. Selesai (jangan kerjain lagi)
 - [x] Timer sound alert saat stage berganti (v2.5)
 - [x] Brew history / log penyeduhan localStorage (v2.5)
 - [x] Rebrand "Seduhin" + halaman Beranda (v2.6)
 - [x] Copy de-slop frontend (v2.7, lihat stop-slop.md)
 - [x] Audit em-dash backend + frontend (v2.7)
+- [x] Git repo publik + deploy Vercel production (v2.8, seduhin-app.vercel.app)
 
 ### Ready to Deploy
 Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, ~186KB JS ~58KB gzip + ~125KB font woff2 self-hosted).
