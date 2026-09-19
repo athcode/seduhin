@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
 **Date:** 2026-09-19
-**Status:** v2.9 — navigasi back/next antar phase **selesai + diverifikasi live** (lihat "v2.9 Changelog"). Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
+**Status:** v2.10 — label navigasi diperbaiki, versi disinkronkan, README section Deploy, cleanup script berbahaya. Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -48,7 +48,6 @@ precision-coffee/
 ├── scripts/
 │   ├── validate_icons.mjs       # cek 12 icon ter-render
 │   ├── check_icon_render.mjs    # Edge headless --dump-dom (JALANKAN VIA NODE, bukan PowerShell)
-│   ├── copy_check.mjs           # DOM check anti-slop (saat ini FAIL: em-dash backend)
 │   ├── find_emdash.mjs          # scan fs, skip node_modules
 │   └── nav_check.mjs            # live interaction test via Edge CDP (20 assertion navigasi phase)
 ├── COFFEE_KNOWLEDGE.md      # 11-bab panduan kopi bahasa Indonesia
@@ -224,6 +223,41 @@ ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-w
 
 ---
 
+## v2.10 Changelog (2026-09-19)
+
+### Label Navigasi Bohong
+`BeanInput` tombol "← Alat lain" dispatch ke phase `presets` — padahal presets cuma nunjukin resep barista untuk metode **yang sama**, gak bisa ganti alat. Fix: dispatch ke phase `method` (grid 12 alat). Sekarang konsisten dengan PresetModal yang juga "← Alat lain" → `method`. State form input tetap aman saat balik (form local state, profile di context terpisah).
+
+### Versi Drift Lagi (v2.5 pernah fix, kambuh)
+Checkpoint v2.9 tapi string versi numpang di versi lama:
+
+| File | Sebelum | Sesudah |
+|---|---|---|
+| `start.ps1` banner | "Precision Coffee Intelligence v2.5" (brand lama!) | "Seduhin v2.10" |
+| `start.ps1` daftar endpoint | cuma health/recipe/feedback | semua 5 endpoint |
+| `frontend/src/App.tsx` footer | v2.7 | v2.10 |
+| `backend/main.py` FastAPI | 2.7.0 | 2.10.0 |
+| `README.md` judul | v2.7 | v2.10 |
+
+### README: Section Deploy Baru
+Repo + URL production + tabel service Vercel (`web`/`api`) + routing, `vercel deploy --prod`, build log, domain custom, dan 2 catatan jangan-diulang (preset FastAPI vs Services, exclude `assets/` di rewrite).
+
+### Cleanup
+- Hapus `scripts/copy_check.mjs` — script `finally`-nya `taskkill /F /IM node.exe` + `python.exe` (bunuh SEMUA proses node/python di mesin). Sudah lama FAIL (em-dash backend) dan duplikat `check_icon_render.mjs`. checkpoint v2.7 sendiri bilang "aman dihapus".
+- Hapus folder `api/` (sisa percobaan file-based functions v2.8, isinya cuma `__pycache__/`, gak ter-track git).
+- `models.py` docstring masih nyebut `api/*.py (Vercel)` — udah gak ada, diganti "Vercel service 'api'".
+
+### Verifikasi
+- `python test_engine.py` + `python test_api.py`: **0 failure**.
+- `tsc -b`: 0 error. `npm run build`: 0 error, JS 186.78KB (58.04KB gzip) + CSS 27.90KB + 5 woff2 (137KB total font).
+- `node scripts/find_emdash.mjs`: user-facing source 0 em-dash baru (section Deploy README diperiksa manual, bersih).
+
+### Catatan besok
+- String versi kambuh tiap ganti versi. Kalau mau permanen: taruh di 1 tempat (mis. `constants.ts` VERSION) + generate footer/meta dari situ. Sekarang masih manual 4 file.
+- `frontend/tsconfig.tsbuildinfo` masih ter-track di git padahal isinya build artifact; `.gitignore` mencantumkannya tapi file sudah ke-commit dulu (butuh `git rm --cached`).
+
+---
+
 ## v2.9 Changelog (2026-09-19)
 
 ### Masalah
@@ -372,8 +406,8 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 
 ### 1. Tugas segera (opsional, besok)
 - [ ] Custom domain `seduhin.app` (atau varian) di Vercel → `vercel domains add seduhin.app`, lalu set DNS. Domain ini yang dipakai untuk share.
-- [ ] README: tambah section "Deploy" (link repo + URL production + cara `vercel deploy --prod`).
-- [ ] Label "← Alat lain" di `BeanInput` sebenarnya balik ke `presets` (skip method). Pertimbangkan ganti ke `← Balik` generik atau ke phase method, biar konsisten dengan rail.
+- [x] README: tambah section "Deploy" (v2.10).
+- [x] Label "← Alat lain" di `BeanInput` balik ke phase `method` sekarang, bukan `presets` (v2.10).
 - [ ] Home/method/presets belum ada header global (back button per-komponen saja). Kalau dirasa perlu, tambah header sticky di phase non-brew juga.
 
 ### 2. Lanjut fitur
@@ -391,6 +425,8 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 - [x] Copy de-slop frontend (v2.7, lihat stop-slop.md)
 - [x] Audit em-dash backend + frontend (v2.7)
 - [x] Git repo publik + deploy Vercel production (v2.8, seduhin-app.vercel.app)
+- [x] Navigasi back/next antar phase: phase rail clickable (v2.9)
+- [x] Label "← Alat lain" BeanInput + sinkron versi v2.10 + README Deploy + cleanup script (v2.10)
 
 ### Ready to Deploy
 Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, ~186KB JS ~58KB gzip + ~125KB font woff2 self-hosted).

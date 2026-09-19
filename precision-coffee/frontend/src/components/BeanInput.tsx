@@ -56,7 +56,7 @@ export function BeanInput() {
     <div className="w-full max-w-xl mx-auto animate-slide-in">
       <div className="text-center mb-8">
         <button
-          onClick={() => dispatch({ type: "SET_PHASE", phase: "presets" })}
+          onClick={() => dispatch({ type: "SET_PHASE", phase: "method" })}
           className="btn-ghost mb-2"
         >
           ← Alat lain

@@ -1,4 +1,4 @@
-"""Shared Pydantic models + converters. Dipakai backend/main.py (localhost) dan api/*.py (Vercel)."""
+"""Shared Pydantic models + converters. Dipakai backend/main.py (localhost + Vercel service 'api')."""
 from dataclasses import asdict
 from typing import Literal
 

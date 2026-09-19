@@ -1,4 +1,4 @@
-# Seduhin v2.7
+# Seduhin v2.10
 
 > **Biji bagus, sayang ditebak. Seduhin aja.**
 
@@ -108,3 +108,40 @@ Buka browser: `http://localhost:5173`
 **Error CORS?**
 - Backend harus jalan di port 8000, frontend di 5173
 - Jangan ubah port — proxy Vite di-hardcode ke 8000
+
+---
+
+## Deploy
+
+**Production:** https://seduhin-app.vercel.app
+**Repo:** https://github.com/athcode/seduhin (branch `main`, push = auto-deploy)
+
+Satu project Vercel, dua service (lihat `vercel.json`):
+
+| Service | Root | Isi |
+|---|---|---|
+| `web` | `frontend/` | Vite build (static), SPA fallback ke `/index.html` |
+| `api` | `backend/` | FastAPI serverless, entrypoint `main:app` |
+
+Routing: `/api/*` → service `api`, sisanya → service `web`.
+
+Deploy manual ke production:
+
+```bash
+vercel deploy --prod
+```
+
+Lihat build log: `vercel inspect <deployment-url> --logs`.
+
+### Domain custom
+
+```bash
+vercel domains add seduhin.app
+```
+
+Lalu set DNS record sesuai instruksi Vercel. `seduhin.vercel.app` sudah dipakai project pihak ketiga, jadi pakai `seduhin-app` atau varian lain (seduhin-kopi, seduhin-id, seduhin-aja).
+
+### Catatan deploy (jangan diulang)
+
+- Vercel melihat dependency `fastapi` di project = framework preset wajib entrypoint FastAPI; file-based `/api/*.py` functions tidak jadi. Frontend static + Python di project yang sama → **Services**, bukan preset.
+- Rewrite di service `web` butuh exclude `assets/`, kalau tidak JS/CSS ikut ke-rewrite ke `index.html`.

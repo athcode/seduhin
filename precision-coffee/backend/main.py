@@ -23,7 +23,7 @@ from models import (
     recipe_to_output,
 )
 
-app = FastAPI(title="Seduhin", version="2.7.0")
+app = FastAPI(title="Seduhin", version="2.10.0")
 
 app.add_middleware(
     CORSMiddleware,

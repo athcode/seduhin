@@ -1,7 +1,7 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " Precision Coffee Intelligence v2.5" -ForegroundColor Yellow
+Write-Host " Seduhin v2.10" -ForegroundColor Yellow
 Write-Host " 12 Brewing Methods | Localhost Edition" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
@@ -16,7 +16,7 @@ $pyProc = Start-Process -FilePath "python" `
     -PassThru `
     -WindowStyle Normal
 Write-Host "       PID: $($pyProc.Id) | http://127.0.0.1:8000" -ForegroundColor Gray
-Write-Host "       Endpoints: /api/health /api/recipe /api/feedback" -ForegroundColor Gray
+Write-Host "       Endpoints: /api/health /api/presets /api/taste-match /api/recipe /api/feedback" -ForegroundColor Gray
 
 Write-Host "[2/2] Starting Frontend (Vite + React)..." -ForegroundColor Green
 $viteBin = Join-Path $frontendDir "node_modules\.bin\vite.cmd"
