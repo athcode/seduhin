@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
 **Date:** 2026-09-19
-**Status:** v2.10 — label navigasi diperbaiki, versi disinkronkan, README section Deploy, cleanup script berbahaya. Live di `seduhin-app.vercel.app`. 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
+**Status:** v2.10 — label navigasi diperbaiki, versi disinkronkan, README section Deploy, cleanup script berbahaya. Live di `seduhinkopi.vercel.app` (alias) + `seduhin-app.vercel.app` (canonical). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -49,7 +49,8 @@ precision-coffee/
 │   ├── validate_icons.mjs       # cek 12 icon ter-render
 │   ├── check_icon_render.mjs    # Edge headless --dump-dom (JALANKAN VIA NODE, bukan PowerShell)
 │   ├── find_emdash.mjs          # scan fs, skip node_modules
-│   └── nav_check.mjs            # live interaction test via Edge CDP (20 assertion navigasi phase)
+│   ├── nav_check.mjs            # live interaction test via Edge CDP (20 assertion navigasi phase)
+│   └── alias_prod.ps1           # refresh alias seduhinkopi ke production deployment terbaru
 ├── COFFEE_KNOWLEDGE.md      # 11-bab panduan kopi bahasa Indonesia
 ├── AGENTS.md                # Ponytail + Coffee domain knowledge
 ├── stop-slop.md             # Style guide copy anti generative-AI (10 tanda slop)
@@ -216,7 +217,8 @@ ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-w
 ```
 
 ### Production (Vercel):
-- Live: **https://seduhin-app.vercel.app** (deploy manual: `vercel deploy --prod` di folder ini)
+- Live: **https://seduhinkopi.vercel.app** (alias) · **https://seduhin-app.vercel.app** (canonical)
+- Deploy manual: `vercel deploy --prod` di folder ini, lalu `.\scripts\alias_prod.ps1`
 - Perubahan di `main` GitHub → auto-deploy (integration aktif)
 - Lihat build log: `vercel inspect <url> --logs`
 - Catatan: `seduhin.vercel.app` **sudah dipakai** project pihak ketiga ("Seduhin - Recipe book"), jadi pakai `seduhin-app`. Domain lain yang dites bebas: seduhin-kopi, seduhin-coffee, seduhin-id, seduhin-aja.
@@ -252,9 +254,33 @@ Repo + URL production + tabel service Vercel (`web`/`api`) + routing, `vercel de
 - `tsc -b`: 0 error. `npm run build`: 0 error, JS 186.78KB (58.04KB gzip) + CSS 27.90KB + 5 woff2 (137KB total font).
 - `node scripts/find_emdash.mjs`: user-facing source 0 em-dash baru (section Deploy README diperiksa manual, bersih).
 
+### Deploy `seduhinkopi.vercel.app`
+Deploy production v2.10 sukses (27s, aliased ke `seduhin-app.vercel.app`), lalu dipasang alias `seduhinkopi.vercel.app`.
+
+**Kendala 1 — dinding login.** Alias baru return halaman "Log in to Vercel" (340KB), bukan app. Root cause: project punya `ssoProtection: { deploymentType: "all_except_custom_domains" }` — semua `*.vercel.app` dilindungi SSO tim, **kecuali domain kanonik** project (`seduhin-app.vercel.app`). Bukan bug, bukan propagasi (sudah ditunggu + semua alias 9 jam sebelumnya juga berdinding). `vercel curl` konfirmasi deployment sehat (bypass token → JSON keluar).
+
+Banyak percobaan yang gagal sebelum nemu root cause:
+- `vercel alias set <deployment> seduhinkopi` — alias jadi, tapi tetap berdinding.
+- `vercel domains add seduhinkopi` → "Only apex domains can be added without a project".
+- `vercel domains add seduhinkopi seduhin-app` → "not a fully qualified domain name".
+- `vercel domains add seduhinkopi.vercel.app` → "The domain is not valid". **Vercel gak mau `*.vercel.app` jadi project domain** (cuma alias), jadi gak ada allowlist per-alias.
+
+**Fix:** dengan persetujuan user, `ssoProtection: null` via `vercel api -X PATCH /v9/projects/<id> --input <json>`. Pertimbangan: app publik tanpa auth tanpa data user; isinya sudah 100% public di domain kanonik; protection gak lindungin apa-apa. Body `{"ssoProtection":{"deploymentType":"none"}}` **ditolak** (400: "must be null or has the valid deploymentType"), yang berhasil: `{"ssoProtection":null}`.
+
+**Kendala 2 — alias gak ngikut production.** `vercel alias set seduhin-app.vercel.app seduhinkopi` di-accept dan bilang "Success", tapi pas diuji dengan `vercel redeploy` (bikin deployment baru `o3o5gh9w1`), `alias ls` tunjukin `seduhinkopi` masih ke deployment lama `pbb2wqi5p`. Vercel resolve hostname sekali saat set; alias itu static per-deployment. **Tiap git push berikutnya, seduhinkopi.vercel.app nyajin build sebelumnya.** Fix: `scripts/alias_prod.ps1` (cari production deployment terbaru via `vercel api /v6/deployments`, pasang ulang alias). Jalankan setelah deploy.
+
+**Verifikasi live di `seduhinkopi.vercel.app`** (semua 200, identik sama tes v2.8 dulu):
+- `/api/health` → `{"status":"ok","service":"Seduhin"}`
+- `/api/presets` → 18 preset (8.8KB)
+- `/api/recipe` V60/Light/Washed/Comandante C40 → dose 18g, 95°C, grind 30, C40 setting 25, 3 stages
+- `/api/recipe` Aeropress/Medium/Natural/Timemore C2/C3 → dose 16g, 90°C, grind 53, C2 setting 23
+- `/api/feedback` SOUR → grind 30→25, temp 95→97, grinder tetap C40
+
 ### Catatan besok
 - String versi kambuh tiap ganti versi. Kalau mau permanen: taruh di 1 tempat (mis. `constants.ts` VERSION) + generate footer/meta dari situ. Sekarang masih manual 4 file.
 - `frontend/tsconfig.tsbuildinfo` masih ter-track di git padahal isinya build artifact; `.gitignore` mencantumkannya tapi file sudah ke-commit dulu (butuh `git rm --cached`).
+- Jangan percaya "Success!" dari `vercel alias set <hostname>` — verify dengan redeploy. Uji apapun yang soal deploy lewat `vercel api` / curl ke URL beneran, bukan output CLI.
+- `ssoProtection` sekarang `null` di project seduhin-app. Kalau mau nyalain lagi (dashboard → Settings → Deployment Protection), semua `*.vercel.app` kembali berdinding kecuali domain kanonik. Custom apex domain tetep exempt kalau protectionnya `all_except_custom_domains`.
 
 ---
 
@@ -405,7 +431,7 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 ## Next Work (urutan prioritas)
 
 ### 1. Tugas segera (opsional, besok)
-- [ ] Custom domain `seduhin.app` (atau varian) di Vercel → `vercel domains add seduhin.app`, lalu set DNS. Domain ini yang dipakai untuk share.
+- [x] Domain public `seduhinkopi.vercel.app` hidup (v2.10; alias, perlu `scripts/alias_prod.ps1` tiap deploy). Apex domain (`seduhinkopi.app`) masih kosong kalau mau yang ikut production otomatis tanpa refresh.
 - [x] README: tambah section "Deploy" (v2.10).
 - [x] Label "← Alat lain" di `BeanInput` balik ke phase `method` sekarang, bukan `presets` (v2.10).
 - [ ] Home/method/presets belum ada header global (back button per-komponen saja). Kalau dirasa perlu, tambah header sticky di phase non-brew juga.

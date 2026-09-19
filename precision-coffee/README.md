@@ -113,7 +113,7 @@ Buka browser: `http://localhost:5173`
 
 ## Deploy
 
-**Production:** https://seduhin-app.vercel.app
+**Production:** https://seduhinkopi.vercel.app (alias) · https://seduhin-app.vercel.app (canonical)
 **Repo:** https://github.com/athcode/seduhin (branch `main`, push = auto-deploy)
 
 Satu project Vercel, dua service (lihat `vercel.json`):
@@ -132,6 +132,16 @@ vercel deploy --prod
 ```
 
 Lihat build log: `vercel inspect <deployment-url> --logs`.
+
+### Alias `seduhinkopi.vercel.app`
+
+Vercel alias nempel ke **deployment ID**, bukan hostname. Tiap `git push` bikin deployment baru, jadi alias ini ketinggalan build (nyajin versi sebelumnya). Setelah setiap deploy, jalankan:
+
+```powershell
+.\scripts\alias_prod.ps1
+```
+
+Script cari production deployment terbaru (lewat API), lalu pasang ulang aliasnya.
 
 ### Domain custom
 
