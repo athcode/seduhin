@@ -490,21 +490,40 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 
 ## Next Work (urutan prioritas)
 
-### 1. Tugas segera (opsional, besok)
-- [x] Domain public `seduhinkopi.vercel.app` hidup (v2.10; alias, perlu `scripts/alias_prod.ps1` tiap deploy). Apex domain (`seduhinkopi.app`) masih kosong kalau mau yang ikut production otomatis tanpa refresh.
-- [x] README: tambah section "Deploy" (v2.10).
-- [x] Label "← Alat lain" di `BeanInput` balik ke phase `method` sekarang, bukan `presets` (v2.10).
-- [ ] Home/method/presets belum ada header global. **Ditunda** (v2.11): tombol back per-phase sekarang prominent (`btn-secondary`) + browser back/next universal → sticky header global gak lagi terasa perlu. Balik ke item ini kalau feedback user masih susah nemu back.
+> **Status sesi ini:** v2.11 production-ready, 0 blocker. Live di `seduhinkopi.vercel.app` + `seduhin-app.vercel.app`. Semua changelog di atas = hari ini (2026-09-19). Kerjaan di bawah = besok.
 
-### 2. Lanjut fitur
-- [ ] Filter presets by equipment on taste-match endpoint
-- [ ] Dark mode UI
-- [ ] PWA / offline support (frontend service Vercel bagus untuk ini; tinggal tambah manifest + service worker)
-- [ ] Export resep ke PDF
-- [ ] Multi-language (EN/ID)
-- [ ] Water recipe calculator (mineral composition)
+### 0. Mulai dari sini (besok)
+```powershell
+.\start.ps1                              # backend :8000 + frontend :5173
+cd backend; python test_engine.py; python test_api.py   # harus 0 failure
+cd frontend; npx tsc -b                  # harus 0 error
+node scripts/nav_check.mjs               # 34/34 (butuh server dev jalan)
+```
+Deploy: `git push origin main` → tunggu READY → **wajib** `.\scripts\alias_prod.ps1` (kalau skip, `seduhinkopi.vercel.app` nyajin build lama). Lalu verifikasi: `curl https://seduhinkopi.vercel.app/api/health`.
 
-### 3. Selesai (jangan kerjain lagi)
+### 1. Operasional (paling nyeri duluan)
+- [ ] **Apex domain `seduhinkopi.app`.** Ini satunya cara ilangin ritual `alias_prod.ps1` tiap deploy: domain project auto-ikut production + exempt dari protection. `vercel domains add seduhinkopi.app` (butuh beli + set DNS). **Keputusan butuh:** mau bayar domain apa tetap refresh alias manual? Kalau manual, pertimbangin nambahin `alias_prod.ps1` ke CI/GitHub Action biar otomatis.
+- [ ] **Konsolidasi VERSION.** Versi manual di 4 tempat (footer `App.tsx`, `main.py` FastAPI, banner `start.ps1`, judul `README.md`) — udah drift 2x (v2.5, v2.7→2.10). Taruh `VERSION` di `constants.ts`, `main.py` baca dari file/env atau hardcode 1 tempat, generate sisanya. Cumu 30 menit, ilangin kelas bug ini selamanya.
+- [ ] `ssoProtection` project lagi `null` (dimatiin v2.10 demi alias public). Kalau perlu nyalain lagi: dashboard → Settings → Deployment Protection. Ingat: nyalain = semua `*.vercel.app` berdinding lagi kecuali domain kanonik.
+- [ ] Header global phase non-brew **ditunda** (v2.11): back per-phase udah `btn-secondary` + browser back universal. Balik ke sini cuma kalau feedback user masih bingung.
+
+### 2. Fitur kecil (murah, nilai keliatan)
+- [ ] **Filter presets by equipment** di `/api/taste-match` (`?equipment=V60` optional param). Sekarang taste-search bisa balikin preset metode lain; user yang udah pilih V60 cuma mau lihat V60. Backend: 1 param + filter di `match_presets_by_taste`. Tes: tambah assertion di `test_engine.py`.
+- [ ] **Error UI PresetModal.** Fetch `/api/presets` gagal diam-diam (`.catch(() => {})`, `presets` kosong, halaman cuma nunjukin tombol Custom). Gak fatal, tapi misleading. Bandingin sama `EquipmentSelect` yang juga swallow fetch error — 2 tempat.
+- [ ] Dark mode. Design token ada di `tailwind.config.js` + `globals.css` (warna hardcode cream/brown di `body` + `.text-muted`). Paling bersih: variable CSS + `prefers-color-scheme`. Audit dulu kontrasnya (`stop-slop.md` + catatan v2.5: `text-light-brown` 1.9:1 pernah lolos, sekarang `text-muted` 5.6:1).
+
+### 3. Fitur besar (butuh sesi sendiri)
+- [ ] **PWA / offline**: frontend Vercel static cocok. Manifest + service worker → timer + resep jalan tanpa sinyal. Catatan: cache strategy butuh pikir, soalnya update app + cache lama bisa konflik (stale recipe UI).
+- [ ] Export resep ke PDF (atau "share card" gamkan). Print CSS mungkin cukup (`window.print()`), sebelum lompat ke lib PDF.
+- [ ] Multi-language EN/ID. String bertebaran di komponen (cari "id" hardcode); butuh i18n pertama kali = sentuh semua file. Pertimbangin cuma EN/ID toggle di beranda.
+- [ ] Water recipe calculator (mineral composition). Bidang baru, butuh riset + validasi pembeda air kemasan lokal Indonesia.
+
+### 4. Ide yang sengaja ditolak (jangan kerjain)
+- **Router library** (react-router): 7 route statis, history API native cukup (v2.11).
+- **`api/` file-based functions**: Vercel tolak preset FastAPI, sudah dicoba v2.8 (Services yang menang).
+- **`pyproject.toml` di root**: bikin Vercel anggap whole-project = Python app, frontend ke-ignore.
+
+### 5. Selesai (jangan kerjain lagi)
 - [x] Timer sound alert saat stage berganti (v2.5)
 - [x] Brew history / log penyeduhan localStorage (v2.5)
 - [x] Rebrand "Seduhin" + halaman Beranda (v2.6)
@@ -517,4 +536,4 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 - [x] Tombol back menonjol + browser back/next via history API, deep-link jalan (v2.11)
 
 ### Ready to Deploy
-Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, ~186KB JS ~58KB gzip + ~125KB font woff2 self-hosted).
+Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, JS 187.78KB / 58.38KB gzip + 5 woff2 ~137KB self-hosted).
