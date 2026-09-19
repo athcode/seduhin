@@ -68,7 +68,7 @@ export function BeanInput() {
           </span>
         </h1>
         <p className="mt-2 text-muted font-medium text-sm sm:text-base">
-          Masukkan detail biji kopi untuk resep {equipment}
+          Masukkan detail biji kopi untuk resep {equipment}. Isi aja, sisanya dihitung.
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export function BeanInput() {
             Proses
           </label>
           <p className="text-xs text-muted mb-2">
-            Cara biji dilepas dari buahnya. Soal rasa, ini noh yang paling ngaruh.
+            Cara biji kopi dilepas dari buahnya. Soal rasa, ini noh yang paling ngaruh.
           </p>
           <select
             id="process"

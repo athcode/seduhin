@@ -10,7 +10,7 @@ const STEPS = [
   {
     n: 2,
     title: "Isi Bean & Grinder",
-    desc: "Asal kopi, proses, roast, grinder yang kamu punya. Semua ngaruh ke hitungan.",
+    desc: "Dari roast sampai grinder di rumah. Semua ngaruh ke hitungan.",
   },
   {
     n: 3,
@@ -33,14 +33,16 @@ export function Home() {
           Seduhin
         </h1>
         <p className="mt-4 text-xl sm:text-2xl font-bold text-deep-brown text-balance">
-          Biji bagus, sayang ditebak.
+          Berhenti nebak rasa kopi.
           <br />
           <span className="text-soft-yellow bg-deep-brown px-3 py-0.5 rounded-lg inline-block mt-2">
             Seduhin aja.
           </span>
         </p>
         <p className="mt-5 text-muted font-medium text-sm sm:text-base text-balance">
-          Sebut biji sama grinder kamu. Dapat resepnya: gram kopi, suhu air, kapan tuang.
+          Beans kopi sekarang beda-beda. Asal, proses, roast, sampai grinder, semua ngaruh.
+          Kamu sebut, kita hitung dari gram sampai kapan harus tuang. Baru nyokop atau udah
+          pro, tinggal ikut.
         </p>
 
         <div className="mt-7 flex flex-col items-center gap-3">
