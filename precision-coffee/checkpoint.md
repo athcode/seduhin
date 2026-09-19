@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
 **Date:** 2026-09-19
-**Status:** v2.11 — tombol back menonjol + browser back/next jalan (history API). Live di `seduhinkopi.vercel.app` (alias) + `seduhin-app.vercel.app` (canonical). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
+**Status:** v2.12 — hook baru "Berhenti nebak rasa kopi" + copy "biji" jadi "biji kopi"/"beans kopi", audit stop-slop lulus. Live di `seduhinkopi.vercel.app` (alias) + `seduhin-app.vercel.app` (canonical). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -222,6 +222,54 @@ ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-w
 - Perubahan di `main` GitHub → auto-deploy (integration aktif)
 - Lihat build log: `vercel inspect <url> --logs`
 - Catatan: `seduhin.vercel.app` **sudah dipakai** project pihak ketiga ("Seduhin - Recipe book"), jadi pakai `seduhin-app`. Domain lain yang dites bebas: seduhin-kopi, seduhin-coffee, seduhin-id, seduhin-aja.
+
+---
+
+## v2.12 Changelog (2026-09-19)
+
+### Hook Baru + Copy "Biji" Diganti
+Permintaan: hook lebih menarik buat GenZ Indonesia, baik yang baru masuk kopi maupun yang udah pro. Plus ganti kata "biji" jadi "biji kopi" / "beans kopi".
+
+| File | Perubahan |
+|---|---|
+| `Home.tsx` | Headline "Biji bagus, sayang ditebak." → "Berhenti nebak rasa kopi."; sub hero baru; langkah 2 Cara Pakai |
+| `App.tsx` | Footer: "biji bagus, sayang ditebak" → "berhenti nebak, seduhin aja" |
+| `index.html` | Meta description pakai hook baru; "dose" → "gram kopi" |
+| `BeanInput.tsx` | "detail biji kopi" + "Cara biji dilepas" → "biji kopi"; tambah "Isi aja, sisanya dihitung." |
+
+Hook baru: **"Berhenti nebak rasa kopi."** + sub:
+> Beans kopi sekarang beda-beda. Asal, proses, roast, sampai grinder, semua ngaruh. Kamu sebut, kita hitung dari gram sampai kapan harus tuang. Baru nyokop atau udah pro, tinggal ikut.
+
+Sisa kata "biji" telanjang di frontend: **0** (2 match = "biji kopi", bentang diizinkan).
+
+### Audit stop-slop.md
+Draft pertama hook masih melanggar 2 tanda, ketemu saat dicek ulang:
+1. **Tanda #2 (daftar 3-item sejajar ritme sempurna):** "gram kopi, suhu air, kapan tuang". Fix: dijadiin rentang "dari gram sampai kapan harus tuang".
+2. **Tanda #5 (kalimat simetris):** "Pemula langsung dapet. Pro makin konsisten." (klausa sama panjang). Fix: panjang diacak jadi 3/15/9 kata + fragmen penutup "tinggal ikut".
+3. Tambahan `BeanInput` "Pemula atau pro, isi aja" juga simetris → dipangkas jadi "Isi aja, sisanya dihitung."
+
+Hook final lulus 10/10 tanda stop-slop + baca keras-keras mulus.
+
+### Verifikasi
+- `tsc -b`: 0 error.
+- `npm run build`: 0 error, 45 modules, JS 187.89KB (58.44KB gzip).
+- `node scripts/find_emdash.mjs`: 0 di file tersentuh (sisa 87 = placeholder, range angka, komentar, dokumen lama).
+
+### Sinkron Versi
+Bump v2.11 → **v2.12** di 4 tempat (footer `App.tsx`, `main.py` FastAPI 2.12.0, banner `start.ps1`, judul `README.md`) + status `checkpoint.md`. Sekali ini sinkron, tapi tetap manual — konsolidasi VERSION belum dikerjain (lihat Next Work #1).
+
+### Deploy
+Commit `8dafbc9` → `git push` → auto-deploy `seduhin-fo4ek4vy4` **READY** (~8 detik) → `.\scripts\alias_prod.ps1` refresh alias.
+
+Verify live (bukan output CLI):
+- `curl https://seduhinkopi.vercel.app/api/health` → `{"status":"ok","service":"Seduhin"}`
+- HTML `seduhinkopi.vercel.app`: meta hook baru **ADA**, hook lama **BERSIH**
+- Canonical `seduhin-app.vercel.app`: hook baru ADA (auto-ikut production)
+
+### Catatan besok
+- **`pwsh` tidak ada di mesin ini** (Windows PowerShell 5.1 aja). `pwsh -File scripts/...` gagal; jalankan langsung `.\scripts\alias_prod.ps1`. `start.ps1` tidak terpengaruh.
+- Pipeline deploy solid di run kedua: push → READY → alias → verify live, semua jalan. Fix `rootDirectory` v2.10 masih aman.
+- Pelajaran berulang: **baca ulang style guide sebelum claim selesai**. Draft hook pertama kelihatan bagus tapi melanggar 2 tanda stop-slop. Cek eksplisit per-aturan, jangan sekadar "terasa udah bagus".
 
 ---
 
@@ -503,7 +551,7 @@ Deploy: `git push origin main` → tunggu READY → **wajib** `.\scripts\alias_p
 
 ### 1. Operasional (paling nyeri duluan)
 - [ ] **Apex domain `seduhinkopi.app`.** Ini satunya cara ilangin ritual `alias_prod.ps1` tiap deploy: domain project auto-ikut production + exempt dari protection. `vercel domains add seduhinkopi.app` (butuh beli + set DNS). **Keputusan butuh:** mau bayar domain apa tetap refresh alias manual? Kalau manual, pertimbangin nambahin `alias_prod.ps1` ke CI/GitHub Action biar otomatis.
-- [ ] **Konsolidasi VERSION.** Versi manual di 4 tempat (footer `App.tsx`, `main.py` FastAPI, banner `start.ps1`, judul `README.md`) — udah drift 2x (v2.5, v2.7→2.10). Taruh `VERSION` di `constants.ts`, `main.py` baca dari file/env atau hardcode 1 tempat, generate sisanya. Cumu 30 menit, ilangin kelas bug ini selamanya.
+- [ ] **Konsolidasi VERSION.** Versi manual di 4 tempat (footer `App.tsx`, `main.py` FastAPI, banner `start.ps1`, judul `README.md`) — udah drift 2x (v2.5, v2.7→2.10). v2.12 bump manual lagi (sukses sync, tapi repetitif, tinggal nunggu kambuh). Taruh `VERSION` di `constants.ts`, `main.py` baca dari file/env atau hardcode 1 tempat, generate sisanya. Cumu 30 menit, ilangin kelas bug ini selamanya.
 - [ ] `ssoProtection` project lagi `null` (dimatiin v2.10 demi alias public). Kalau perlu nyalain lagi: dashboard → Settings → Deployment Protection. Ingat: nyalain = semua `*.vercel.app` berdinding lagi kecuali domain kanonik.
 - [ ] Header global phase non-brew **ditunda** (v2.11): back per-phase udah `btn-secondary` + browser back universal. Balik ke sini cuma kalau feedback user masih bingung.
 
@@ -534,6 +582,7 @@ Deploy: `git push origin main` → tunggu READY → **wajib** `.\scripts\alias_p
 - [x] Label "← Alat lain" BeanInput + sinkron versi v2.10 + README Deploy + cleanup script (v2.10)
 - [x] Domain public `seduhinkopi.vercel.app` + fix auto-deploy GitHub yang rusak sejak v2.8 (rootDirectory) (v2.10)
 - [x] Tombol back menonjol + browser back/next via history API, deep-link jalan (v2.11)
+- [x] Hook GenZ "Berhenti nebak rasa kopi" + ganti "biji" → "biji kopi"/"beans kopi", audit stop-slop lulus, deploy + verify live (v2.12)
 
 ### Ready to Deploy
 Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, JS 187.78KB / 58.38KB gzip + 5 woff2 ~137KB self-hosted).

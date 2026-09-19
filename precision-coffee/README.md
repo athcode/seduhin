@@ -1,4 +1,4 @@
-# Seduhin v2.11
+# Seduhin v2.12
 
 > **Biji bagus, sayang ditebak. Seduhin aja.**
 

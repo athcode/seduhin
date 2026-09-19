@@ -1,7 +1,7 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " Seduhin v2.11" -ForegroundColor Yellow
+Write-Host " Seduhin v2.12" -ForegroundColor Yellow
 Write-Host " 12 Brewing Methods | Localhost Edition" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
