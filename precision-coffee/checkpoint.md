@@ -276,11 +276,23 @@ Banyak percobaan yang gagal sebelum nemu root cause:
 - `/api/recipe` Aeropress/Medium/Natural/Timemore C2/C3 → dose 16g, 90°C, grind 53, C2 setting 23
 - `/api/feedback` SOUR → grind 30→25, temp 95→97, grinder tetap C40
 
+### Auto-deploy GitHub rusak sejak v2.8 (baru ketemu)
+
+Riwayat deployment (`vercel api /v6/deployments`) ngungkapin: **setiap auto-deploy GitHub sejak arsitektur Services ERROR** — `746ed11` (v2.8), `1ba5a6d` (v2.9), `8a825bb`, `16b8816`, `19c94ce`. Dua "READY" terakhir itu deploy **manual CLI** saya. Klaim v2.9 "push → auto-deploy aktif" keliru: push-nya ERROR diam-diam, tes live v2.8/v2.9 kenena deployment CLI, jadi gak kelihatan.
+
+**Root cause: root mismatch.** Project dibuat dari folder `precision-coffee/`, tapi GitHub integration clone dari **repo root** (`Website Kopi`). Vercel FastAPI detector scan dari root, nemu entrypoint di `precision-coffee/backend/main.py` + `precision-coffee/backend/test_api.py` (2 kandidat, ambigu) → `Error: No FastAPI entrypoint found in default locations`. Deploy CLI selalu sukses karena CWD-nya `precision-coffee/` — layout-nya persis seperti default location.
+
+**Fix:** `rootDirectory: "precision-coffee"` lewat `vercel api -X PATCH /v9/projects/<id>`. Satu setting, nol kode. Verifikasi: redeploy deployment yang ERROR → READY; `git push` kosong → auto-deploy baru `seduhin-a40i7wdug` → READY. Sekarang pipeline GitHub beneran jalan.
+
+Catatan: redeploy commit `19c94ce` jadi deployment `seduhin-cmyaculsg` (READY, production), lalu commit `5ad1c87` jadi `seduhin-a40i7wdug` (READY). Alias `seduhinkopi` di-refresh ke `a40i7wdug` pakai `scripts/alias_prod.ps1`.
+
 ### Catatan besok
 - String versi kambuh tiap ganti versi. Kalau mau permanen: taruh di 1 tempat (mis. `constants.ts` VERSION) + generate footer/meta dari situ. Sekarang masih manual 4 file.
 - `frontend/tsconfig.tsbuildinfo` masih ter-track di git padahal isinya build artifact; `.gitignore` mencantumkannya tapi file sudah ke-commit dulu (butuh `git rm --cached`).
 - Jangan percaya "Success!" dari `vercel alias set <hostname>` — verify dengan redeploy. Uji apapun yang soal deploy lewat `vercel api` / curl ke URL beneran, bukan output CLI.
 - `ssoProtection` sekarang `null` di project seduhin-app. Kalau mau nyalain lagi (dashboard → Settings → Deployment Protection), semua `*.vercel.app` kembali berdinding kecuali domain kanonik. Custom apex domain tetep exempt kalau protectionnya `all_except_custom_domains`.
+- **Verify auto-deploy beneran**, bukan cuma lihat "integration connected". Cek `vercel api /v6/deployments?projectId=<id>&limit=12` + `readyState` per commit. Deploy CLI dari subfolder bisa nyembunyiin broken GitHub pipeline berhari-hari.
+- Kalau project root ≠ repo root, wajib set `rootDirectory` di project setting (API: PATCH `/v9/projects/<id>` `{"rootDirectory":"..."}`).
 
 ---
 
@@ -453,6 +465,7 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 - [x] Git repo publik + deploy Vercel production (v2.8, seduhin-app.vercel.app)
 - [x] Navigasi back/next antar phase: phase rail clickable (v2.9)
 - [x] Label "← Alat lain" BeanInput + sinkron versi v2.10 + README Deploy + cleanup script (v2.10)
+- [x] Domain public `seduhinkopi.vercel.app` + fix auto-deploy GitHub yang rusak sejak v2.8 (rootDirectory) (v2.10)
 
 ### Ready to Deploy
 Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, ~186KB JS ~58KB gzip + ~125KB font woff2 self-hosted).
