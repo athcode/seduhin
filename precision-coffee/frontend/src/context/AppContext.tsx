@@ -1,6 +1,32 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef, type Dispatch } from "react";
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, type Dispatch } from "react";
 import type { BeanProfile, Recipe, FeedbackType, AppPhase, FeedbackResponse, Equipment, BrewHistoryEntry } from "../types";
 import { useBrewHistory } from "../hooks/useBrewHistory";
+
+/* URL per phase — browser back/next jalan via history API (native, no router lib) */
+const PHASE_PATHS: Record<AppPhase, string> = {
+  home: "/",
+  method: "/metode",
+  presets: "/preset",
+  input: "/kopi",
+  recipe: "/resep",
+  brewing: "/seduh",
+  feedback: "/rasa",
+};
+
+const NEEDS_RECIPE: AppPhase[] = ["recipe", "brewing", "feedback"];
+
+function phaseFromPath(): AppPhase {
+  const p = typeof window === "undefined" ? "/" : window.location.pathname;
+  const entry = (Object.entries(PHASE_PATHS) as [AppPhase, string][]).find(([, path]) => path === p);
+  return entry ? entry[0] : "home";
+}
+
+/* deep-link: phase diambil dari URL. recipe/brewing/feedback butuh state.recipe
+   yang gak ada saat cold start → pulangkan ke beranda */
+function initialPhase(): AppPhase {
+  const phase = phaseFromPath();
+  return NEEDS_RECIPE.includes(phase) ? "home" : phase;
+}
 
 interface AppState {
   phase: AppPhase;
@@ -26,7 +52,7 @@ type Action =
   | { type: "RESET" };
 
 const initialState: AppState = {
-  phase: "home",
+  phase: initialPhase(),
   equipment: null,
   profile: null,
   recipe: null,
@@ -65,7 +91,9 @@ function reducer(state: AppState, action: Action): AppState {
         ],
       };
     case "RESET":
-      return initialState;
+      // selalu beranda — initialState.phase dihitung saat module load (deep-link),
+      // jadi gak boleh dipakai mentah di sini
+      return { ...initialState, phase: "home" };
     default:
       return state;
   }
@@ -85,7 +113,41 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const isSubmittingRef = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const { history, addEntry, clearHistory } = useBrewHistory();
+
+  /* sync URL saat phase berubah (in-app navigation).
+     Mount pertama = replaceState (normalisasi deep-link tak valid), setelahnya pushState. */
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    const path = PHASE_PATHS[state.phase];
+    if (window.location.pathname === path) {
+      mountedRef.current = true;
+      return;
+    }
+    if (mountedRef.current) window.history.pushState({ phase: state.phase }, "", path);
+    else window.history.replaceState({ phase: state.phase }, "", path);
+    mountedRef.current = true;
+  }, [state.phase]);
+
+  /* browser back/next: popstate → dispatch phase dari history state.
+     URL sudah diganti browser, jadi effect di atas gak pushState lagi (path cocok). */
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const phase = ((e.state as { phase?: AppPhase } | null)?.phase ?? phaseFromPath()) as AppPhase;
+      if (!PHASE_PATHS[phase]) return;
+      // phase seduh udah ke-reset (RESET) → URL kedaluwarsa, kembalikan ke phase sebenarnya
+      if (NEEDS_RECIPE.includes(phase) && !stateRef.current.recipe) {
+        const actual = stateRef.current.phase;
+        window.history.replaceState({ phase: actual }, "", PHASE_PATHS[actual]);
+        return;
+      }
+      dispatch({ type: "SET_PHASE", phase });
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const generateRecipe = useCallback(async (profile: BeanProfile) => {
     dispatch({ type: "SET_LOADING", isLoading: true });

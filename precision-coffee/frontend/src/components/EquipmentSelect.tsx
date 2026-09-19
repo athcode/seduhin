@@ -74,7 +74,7 @@ export function EquipmentSelect() {
       <div className="text-center mb-8">
         <button
           onClick={() => dispatch({ type: "SET_PHASE", phase: "home" })}
-          className="btn-ghost mb-2"
+          className="btn-secondary mb-2"
         >
           ← Beranda
         </button>

@@ -126,6 +126,69 @@ async function main() {
   await sleep(400);
   check("skip ke feedback dari input (data ada)", await hasText("Kegasaman"));
 
+  // 11. URL ikut phase (pushState)
+  check("url /rasa saat feedback", await evalJs(`location.pathname === "/rasa"`));
+
+  // 12. browser BACK: /rasa → /kopi
+  await evalJs(`history.back()`);
+  await sleep(400);
+  check("browser back ke input", await hasText("Asal Kopi"));
+  check("url /kopi", await evalJs(`location.pathname === "/kopi"`));
+
+  // 13. browser FORWARD: balik ke /rasa
+  await evalJs(`history.forward()`);
+  await sleep(400);
+  check("browser forward ke feedback", await hasText("Kegasaman"));
+  check("url /rasa lagi", await evalJs(`location.pathname === "/rasa"`));
+
+  // 14. browser BACK 2x: /rasa → /kopi → /resep
+  await evalJs(`history.back()`);
+  await sleep(300);
+  await evalJs(`history.back()`);
+  await sleep(400);
+  check("back 2x ke recipe", await hasText("Kapan Tuang Air"));
+  check("url /resep", await evalJs(`location.pathname === "/resep"`));
+
+  // 15. deep-link /seduh cold start (no recipe) → pulang ke beranda
+  await send("Page.navigate", { url: "http://localhost:5173/seduh" });
+  await sleep(3000);
+  check("deep-link /seduh tanpa recipe → beranda", await hasText("Mulai Seduh"));
+  check("url dinormalkan ke /", await evalJs(`location.pathname === "/"`));
+
+  // 16. deep-link /metode jalan
+  await send("Page.navigate", { url: "http://localhost:5173/metode" });
+  await sleep(2500);
+  check("deep-link /metode jalan", await hasText("Pilih Metode Seduh"));
+  check("url /metode", await evalJs(`location.pathname === "/metode"`));
+
+  // 17. alur cepat lagi untuk uji guard RESET
+  await clickText("V60");
+  await sleep(400);
+  await clickText("Custom / Manual");
+  await sleep(400);
+  await evalJs(`
+    const el = document.getElementById("origin");
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+    setter.call(el, "Toraja");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    true;
+  `);
+  await clickText("Generate Resep");
+  await sleep(1500);
+  check("alur cepat: masuk recipe", await hasText("Kapan Tuang Air"));
+
+  // 18. RESET dari recipe → beranda
+  await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Reset")?.click()`);
+  await sleep(400);
+  check("reset ke beranda", await hasText("Mulai Seduh"));
+  check("url / setelah reset", await evalJs(`location.pathname === "/"`));
+
+  // 19. browser back setelah RESET: URL /seduh kedaluwarsa → tetap beranda
+  await evalJs(`history.back()`);
+  await sleep(500);
+  check("back dari reset tidak white screen", await hasText("Mulai Seduh"));
+  check("url kembali ke /", await evalJs(`location.pathname === "/"`));
+
   console.log();
   console.log(`=== ${failures.length} failures ===`);
   for (const f of failures) console.log(" -", f);

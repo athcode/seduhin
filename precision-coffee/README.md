@@ -1,4 +1,4 @@
-# Seduhin v2.10
+# Seduhin v2.11
 
 > **Biji bagus, sayang ditebak. Seduhin aja.**
 
@@ -75,6 +75,7 @@ Buka browser: `http://localhost:5173`
 - **Grinder lock**: Cold Brew, Moka Pot, Turkish — suhu dikunci saat feedback
 - **Brew timer**: rAF 30fps, dual progress bar (CSS transition), notifikasi suara saat stage berganti
 - **Brew history**: riwayat seduh tersimpan di localStorage (opsional, tidak butuh server)
+- **Browser back/next**: tiap phase punya URL sendiri (`/metode`, `/kopi`, `/seduh`, dst.), tombol back/forward browser + deep-link jalan
 - **Mobile-first & low-end**: target tap 44px, kontras teks WCAG, font sistem (tanpa download), reduced-motion
 
 ---

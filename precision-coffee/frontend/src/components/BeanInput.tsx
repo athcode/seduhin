@@ -57,7 +57,7 @@ export function BeanInput() {
       <div className="text-center mb-8">
         <button
           onClick={() => dispatch({ type: "SET_PHASE", phase: "method" })}
-          className="btn-ghost mb-2"
+          className="btn-secondary mb-2"
         >
           ← Alat lain
         </button>

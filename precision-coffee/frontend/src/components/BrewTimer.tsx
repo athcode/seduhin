@@ -287,7 +287,7 @@ export function BrewTimer() {
 
       <button
         onClick={() => dispatch({ type: "SET_PHASE", phase: "recipe" })}
-        className="btn-ghost block mx-auto"
+        className="btn-secondary block mx-auto"
       >
         ← Balik ke resep
       </button>

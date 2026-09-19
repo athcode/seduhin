@@ -1,7 +1,7 @@
 # Seduhin — Checkpoint
 
 **Date:** 2026-09-19
-**Status:** v2.10 — label navigasi diperbaiki, versi disinkronkan, README section Deploy, cleanup script berbahaya. Live di `seduhinkopi.vercel.app` (alias) + `seduhin-app.vercel.app` (canonical). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
+**Status:** v2.11 — tombol back menonjol + browser back/next jalan (history API). Live di `seduhinkopi.vercel.app` (alias) + `seduhin-app.vercel.app` (canonical). 18 barista presets, 17 grinders, 12 methods, taste search, brew history, timer 30fps + sound alert. Tidak ada blocker production-ready lagi. Lanjutan kerja: lihat "Next Work".
 
 ---
 
@@ -49,7 +49,7 @@ precision-coffee/
 │   ├── validate_icons.mjs       # cek 12 icon ter-render
 │   ├── check_icon_render.mjs    # Edge headless --dump-dom (JALANKAN VIA NODE, bukan PowerShell)
 │   ├── find_emdash.mjs          # scan fs, skip node_modules
-│   ├── nav_check.mjs            # live interaction test via Edge CDP (20 assertion navigasi phase)
+│   ├── nav_check.mjs            # live interaction test via Edge CDP (34 assertion: navigasi + history + deep-link)
 │   └── alias_prod.ps1           # refresh alias seduhinkopi ke production deployment terbaru
 ├── COFFEE_KNOWLEDGE.md      # 11-bab panduan kopi bahasa Indonesia
 ├── AGENTS.md                # Ponytail + Coffee domain knowledge
@@ -222,6 +222,54 @@ ngrok http 5173 --host-header=rewrite --request-header-add="ngrok-skip-browser-w
 - Perubahan di `main` GitHub → auto-deploy (integration aktif)
 - Lihat build log: `vercel inspect <url> --logs`
 - Catatan: `seduhin.vercel.app` **sudah dipakai** project pihak ketiga ("Seduhin - Recipe book"), jadi pakai `seduhin-app`. Domain lain yang dites bebas: seduhin-kopi, seduhin-coffee, seduhin-id, seduhin-aja.
+
+---
+
+## v2.11 Changelog (2026-09-19)
+
+### Browser Back/Next Jalan
+Sebelumnya app = state machine murni: tombol back/forward browser **gak ngapa-ngapain** (SPA tanpa router). Sekarang tiap phase punya URL, disync lewat `history.pushState` + listener `popstate` (native, **tanpa library router**):
+
+| Phase | URL |
+|---|---|
+| home | `/` |
+| method | `/metode` |
+| presets | `/preset` |
+| input | `/kopi` |
+| recipe | `/resep` |
+| brewing | `/seduh` |
+| feedback | `/rasa` |
+
+Implementasi di `AppContext.tsx` (single source of truth phase):
+- `PHASE_PATHS` map + `initialPhase()` baca `location.pathname` saat cold start → **deep-link beneran jalan** (sebelumnya `/seduh` render beranda saja; sekarang langsung ke phase itu).
+- Effect `[state.phase]`: `location.pathname !== path` → `pushState` (in-app navigation). Mount pertama pakai `replaceState` (normalkan deep-link tak valid, jangan ngisi history).
+- Listener `popstate`: dispatch phase dari `history.state`. URL udah diganti browser → effect skip pushState otomatis (gak butuh flag "programmatic vs popstate").
+- Guard: `recipe/brewing/feedback` butuh `state.recipe`. Cold start tanpa recipe → pulang ke beranda + `replaceState`. Setelah `RESET`, `popstate` ke URL sedih kedaluwarsa → `replaceState` balik ke phase sebenarnya (mencegah **white screen**, BrewTimer guard `if (!recipe) return null`).
+
+**Bug ketemu sama test sendiri:** `reducer RESET` return `initialState` mentah — phase-nya dihitung saat **module load** (deep-link). Abis load dari `/metode`, RESET malah balik ke phase method. Fix: `{ ...initialState, phase: "home" }` (1 baris).
+
+### Tombol Back Lebih Menonjol
+Semua 6 tombol back: `btn-ghost` (mocha transparan, gampang kelewat) → `btn-secondary` (border-2 deep-brown, keliatan jelas):
+
+| File | Tombol |
+|---|---|
+| `EquipmentSelect` | ← Beranda |
+| `PresetModal` | ← Alat lain |
+| `BeanInput` | ← Alat lain |
+| `RecipeDisplay` | ← Ubah Kopi |
+| `BrewTimer` | ← Balik ke resep |
+| `FeedbackPanel` | ← Seduh Lagi |
+
+Posisi tetap di atas judul (ubah class aja, gak sentuh layout). Mute toggle + Bersihkan riwayat tetap `btn-ghost` (bukan navigasi).
+
+### Verifikasi
+- `tsc -b`: 0 error. `npm run build`: 0 error, 45 modules, JS 187.78KB (58.38KB gzip, +1KB dari history logic).
+- `node scripts/nav_check.mjs`: **34/34 PASS** (sebelumnya 20). Tambahan: URL ikut phase, browser back/forward antar phase, deep-link `/seduh` cold-start tanpa recipe → beranda, deep-link `/metode`, alur RESET + browser back (guard white screen). Test ketemu bug RESET sendiri sebelum produksi.
+
+### Yang sengaja gak dibuat
+- **Router library** (react-router dll): 7 route statis, native history API cukup. Tambah dependency = bloat.
+- **Sticky header global phase non-brew**: tiap phase udah punya tombol back prominent sekarang + browser back universal. YAGNI.
+- **Title per phase / scroll restoration**: belum butuh.
 
 ---
 
@@ -446,7 +494,7 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 - [x] Domain public `seduhinkopi.vercel.app` hidup (v2.10; alias, perlu `scripts/alias_prod.ps1` tiap deploy). Apex domain (`seduhinkopi.app`) masih kosong kalau mau yang ikut production otomatis tanpa refresh.
 - [x] README: tambah section "Deploy" (v2.10).
 - [x] Label "← Alat lain" di `BeanInput` balik ke phase `method` sekarang, bukan `presets` (v2.10).
-- [ ] Home/method/presets belum ada header global (back button per-komponen saja). Kalau dirasa perlu, tambah header sticky di phase non-brew juga.
+- [ ] Home/method/presets belum ada header global. **Ditunda** (v2.11): tombol back per-phase sekarang prominent (`btn-secondary`) + browser back/next universal → sticky header global gak lagi terasa perlu. Balik ke item ini kalau feedback user masih susah nemu back.
 
 ### 2. Lanjut fitur
 - [ ] Filter presets by equipment on taste-match endpoint
@@ -466,6 +514,7 @@ Semua em-dash di copy naratif (frontend + backend) diganti: koma, titik, koma-ti
 - [x] Navigasi back/next antar phase: phase rail clickable (v2.9)
 - [x] Label "← Alat lain" BeanInput + sinkron versi v2.10 + README Deploy + cleanup script (v2.10)
 - [x] Domain public `seduhinkopi.vercel.app` + fix auto-deploy GitHub yang rusak sejak v2.8 (rootDirectory) (v2.10)
+- [x] Tombol back menonjol + browser back/next via history API, deep-link jalan (v2.11)
 
 ### Ready to Deploy
 Semua endpoint + frontend production-ready. **Tidak ada blocker lagi.** Build output di `frontend/dist/` (45 modules, ~186KB JS ~58KB gzip + ~125KB font woff2 self-hosted).

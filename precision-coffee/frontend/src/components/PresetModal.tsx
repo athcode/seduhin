@@ -44,7 +44,7 @@ export function PresetModal() {
   return (
     <div className="w-full max-w-2xl mx-auto animate-slide-in">
       <div className="text-center mb-8">
-        <button onClick={goBack} className="btn-ghost mb-2">
+        <button onClick={goBack} className="btn-secondary mb-2">
           ← Alat lain
         </button>
         <div className="flex items-center justify-center gap-2.5">

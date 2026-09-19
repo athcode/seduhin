@@ -122,7 +122,7 @@ export function RecipeDisplay() {
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={() => dispatch({ type: "SET_PHASE", phase: "input" })}
-          className="btn-ghost self-start"
+          className="btn-secondary self-start"
         >
           ← Ubah Kopi
         </button>

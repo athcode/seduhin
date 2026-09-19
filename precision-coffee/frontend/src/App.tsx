@@ -88,7 +88,7 @@ export function App() {
       </main>
 
       <footer className="border-t border-light-brown/40 py-6 text-center text-xs text-muted font-medium">
-        Seduhin &middot; biji bagus, sayang ditebak. Seduhin aja. &middot; v2.10
+        Seduhin &middot; biji bagus, sayang ditebak. Seduhin aja. &middot; v2.11
       </footer>
     </div>
   );
